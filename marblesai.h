@@ -5,4 +5,4 @@
 
 using namespace sf;
 
-void marblesAi();
+void marblesAi(int vol);

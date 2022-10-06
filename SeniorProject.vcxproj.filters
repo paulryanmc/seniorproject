@@ -36,6 +36,9 @@
     <ClCompile Include="diceai.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="blockssolo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="blocks.h">
@@ -54,6 +57,9 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="diceai.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="blockssolo.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

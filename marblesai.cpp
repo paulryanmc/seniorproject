@@ -1,4 +1,5 @@
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
 #include <time.h>
 #include "title.h"
 #include <string>
@@ -6,7 +7,7 @@
 
 using namespace sf;
 
-void marblesAi() {
+void marblesAi(int vol) {
 
 	int p1Marbles[6];
 	int p2Marbles[6];
@@ -32,6 +33,12 @@ void marblesAi() {
 	bool victory3 = false;
 	int aiturn = 0;
 	bool valid = false;
+
+	sf::Music music;
+	music.setVolume(vol);
+	music.openFromFile("resources/Smooth.ogg");
+	music.setLoop(true);
+	music.play();
 
 	RenderWindow marblesWindow(VideoMode(1280, 720), "marbles", sf::Style::Titlebar | sf::Style::Close);
 
@@ -246,6 +253,7 @@ void marblesAi() {
 		{
 			switch (Event.type) {
 			case Event::Closed:
+				music.stop();
 				marblesWindow.close();
 				title();
 				break;

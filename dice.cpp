@@ -1,4 +1,5 @@
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
 #include <time.h>
 #include "title.h"
 #include <string>
@@ -7,20 +8,30 @@
 using namespace sf;
 
 
-void dice() {
+void dice(int vol) {
 	// Creates and initializes all needed variables and sfml components, including all of the needed text sprites
 	int board1[13];
 	int board2[13];
-	int turn = 1;
+	int diceResult[5];
+	bool diceFreeze[5];
+	int turn = 1, starting = 0;
 	for (int i = 0; i < 13; ++i) {
 		board1[i] = -1;
 		board2[i] = -1;
 	}
-	int diceResult[5] = { 0 };
-	int diceFreeze[5] = { 0 };
+	for (int i = 0; i < 5; ++i) {
+		diceResult[i] = 0;
+		diceFreeze[i] = false;
+	}
 	srand(time(0));
 	int rollCount = 0, totals = 0, score = 0, check = 0, once = 0;
 	bool gamecomplete = false, rolled = false;
+
+	sf::Music music;
+	music.setVolume(vol);
+	music.openFromFile("resources/Pub.ogg");
+	music.setLoop(true);
+	music.play();
 
 	RenderWindow diceWindow(VideoMode(1280, 720), "dice", sf::Style::Titlebar | sf::Style::Close);
 
@@ -640,6 +651,7 @@ while (diceWindow.isOpen())
 		switch (Event.type)
 		{
 		case Event::Closed:
+			music.stop();
 			diceWindow.close();
 			title();
 			break;
@@ -673,6 +685,7 @@ while (diceWindow.isOpen())
 			// Sets up the capacity of the several buttons including the ability to freeze die
 			if (exitButtonImage.getGlobalBounds().contains(mousePosF))
 			{
+				music.stop();
 				diceWindow.close();
 				title();
 				return;
@@ -733,8 +746,15 @@ while (diceWindow.isOpen())
 				}
 			}
 			// Rolls the five dice and changes the sprites to the correct numbers as well as allowing the current player to choose a category
-			else if (rollButtonImage.getGlobalBounds().contains(mousePosF) /*&& rollCount < 3*/ && gamecomplete == false)
+			else if (rollButtonImage.getGlobalBounds().contains(mousePosF) && rollCount < 3 && gamecomplete == false)
 			{
+				if (starting == 0){
+					for (int i = 0; i < 5; ++i) {
+						diceResult[i] = 0;
+						diceFreeze[i] = false;
+					}
+					starting = 1;
+				}
 				totals = 0;
 				for (int i = 0; i < 5; ++i) {
 					if (diceFreeze[i] == false) {

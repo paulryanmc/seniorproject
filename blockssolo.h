@@ -6,4 +6,4 @@
 
 using namespace sf;
 
-void dice(int vol);
+void blockssolo(int vol, int player1Rotate, int player1Left, int player1Right, int player1Drop);

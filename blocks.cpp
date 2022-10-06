@@ -1,4 +1,5 @@
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
 #include <time.h>
 #include "blocks.h"
 #include "title.h"
@@ -9,9 +10,12 @@ using namespace sf;
 
 const int M = 20;
 const int N = 10;
+const int O = 4;
 
 int field1[M][N] = { 0 };
 int field2[M][N] = { 0 };
+int hold1[O][O] = { 0 };
+int hold2[O][O] = { 0 };
 
 struct Point
 {
@@ -38,13 +42,31 @@ bool check(Point z[], int field[M][N])
 	return 1;
 };
 
-void blocks() {
+void blocks(int vol, int player1Rotate, int player1Left, int player1Right, int player1Drop, int player2Rotate, int player2Left, int player2Right, int player2Drop) {
 	// Creates and initializes all needed variables and sfml components
 	bool victory = false, upKey = false, downKey = false, leftKey = false, rightKey = false, wKey = false, aKey = false, sKey = false, dKey = false;
-	int points1 = 0, points2 = 0;
+	int points1 = 0, points2 = 0, musicnum = 1 + rand() % 3;
+	float tempcount = 60;
+
 	sf::Font font;
 	if (!font.loadFromFile("resources/arial.ttf"))
 		std::cout << "Can't find the font" << std::endl;
+
+	String musicfile = "blank";
+	sf::Music music;
+	music.setVolume(vol);
+	switch (musicnum) {
+	case 1:
+		music.openFromFile("resources/SHOP1.ogg");
+		break;
+	case 2:
+		music.openFromFile("resources/TWISTA.ogg");
+		break;
+	case 3:
+		music.openFromFile("resources/PDB1.ogg");
+		break;
+	}
+	music.play();
 
 	sf::Text winnerText;
 	winnerText.setFont(font);
@@ -86,6 +108,22 @@ void blocks() {
 	score2.setFillColor(sf::Color::Black);
 	score2.setCharacterSize(24);
 
+	sf::Text clocktimer;
+	clocktimer.setFont(font);
+	clocktimer.setStyle(sf::Text::Bold);
+	clocktimer.setString(std::to_string(0));
+	clocktimer.setPosition(635.0f, 100.0f);
+	clocktimer.setFillColor(sf::Color::Black);
+	clocktimer.setCharacterSize(24);
+
+	sf::Text clocktext;
+	clocktext.setFont(font);
+	clocktext.setStyle(sf::Text::Bold);
+	clocktext.setString("Time:");
+	clocktext.setPosition(545.0f, 100.0f);
+	clocktext.setFillColor(sf::Color::Black);
+	clocktext.setCharacterSize(24);
+
 	srand(time(0));
 	for (int i = M - 1; i > 0; i--)
 	{
@@ -93,6 +131,14 @@ void blocks() {
 		{
 			field1[i][j] = 0;
 			field2[i][j] = 0;
+		}
+	}
+	for (int i = O - 1; i > 0; i--)
+	{
+		for (int j = 0; j < O; j++)
+		{
+			hold1[i][j] = 0;
+			hold2[i][j] = 0;
 		}
 	}
 
@@ -106,20 +152,38 @@ void blocks() {
 
 	Sprite s(map), background(bg);
 
-	int dx1 = 0, dx2 = 0; bool rotate1 = 0, rotate2 = 0; int colorNum1 = 1, colorNum2 = 1;
-	float timer1 = 0, timer2 = 0, delay1 = 0.3, delay2 = 0.3;
+	int dx1 = 0, dx2 = 0; bool rotate1 = 0, rotate2 = 0; int colorNum1 = 1, colorNum2 = 1, colorNum1b = 1, colorNum2b = 1;
+	float timer1 = 0, timer2 = 0, delay1 = 0.3, delay2 = 0.3, countdown = 0, intensity = 0;
 
 	Clock clock;
 
 	colorNum1 = 1 + rand() % 7;
-	int n = rand() % 7;
+	colorNum2 = 1 + rand() % 7;
+	int n1 = rand() % 7;
+	int n2 = rand() % 7;
 	for (int i = 0; i < 4; i++)
 	{
-		a[i].x = figures[n][i] % 2;
-		a[i].y = figures[n][i] / 2;
-		c[i].x = figures[n][i] % 2;
-		c[i].y = figures[n][i] / 2;
+		a[i].x = figures[n1][i] % 2 + 4;
+		a[i].y = figures[n1][i] / 2;
+		c[i].x = figures[n2][i] % 2 + 4;
+		c[i].y = figures[n2][i] / 2;
 	}
+	n1 = rand() % 7;
+	colorNum1b = 1 + rand() % 7;
+	for (int i = 0; i < O; i++) {
+		for (int j = 0; j < O; j++) {
+			hold1[i][j] = 0;
+		}
+	}
+	for (int i = 0; i < 4; i++) hold1[figures[n2][i] / 2][figures[n2][i] % 2] = colorNum1b;
+	n2 = rand() % 7;
+	colorNum2b = 1 + rand() % 7;
+	for (int i = 0; i < O; i++) {
+		for (int j = 0; j < O; j++) {
+			hold2[i][j] = 0;
+		}
+	}
+	for (int i = 0; i < 4; i++) hold2[figures[n2][i] / 2][figures[n2][i] % 2] = colorNum2b;
 
 	while (blocksWindow.isOpen() && victory == false)
 	{
@@ -127,8 +191,83 @@ void blocks() {
 		clock.restart();
 		timer1 += time;
 		timer2 += time;
+		countdown += time;
+		intensity = countdown / 1000;
 
-		Event Event;
+		if (music.getStatus() == music.Stopped) {
+			if ((countdown - tempcount) > 0) {
+				int tempnum = musicnum;
+				do musicnum = 1 + rand() % 3;
+				while (musicnum == tempnum);
+				tempcount = countdown + 60;
+			}
+			switch (musicnum) {
+			case 1:
+				switch (1 + rand() % 4) {
+				case 1:
+					musicfile = "resources/SHOP1.ogg";
+					break;
+				case 2:
+					musicfile = "resources/SHOP2.ogg";
+					break;
+				case 3:
+					musicfile = "resources/SHOP3.ogg";
+					break;
+				case 4:
+					musicfile = "resources/SHOP4.ogg";
+					break;
+				}
+				break;
+			case 2:
+				switch (1 + rand() % 5) {
+				case 1:
+					musicfile = "resources/TWISTA.ogg";
+					break;
+				case 2:
+					musicfile = "resources/TWISTB.ogg";
+					break;
+				case 3:
+					musicfile = "resources/TWISTC.ogg";
+					break;
+				case 4:
+					musicfile = "resources/TWISTD.ogg";
+					break;
+				case 5:
+					musicfile = "resources/TWISTE.ogg";
+					break;
+				}
+				break;
+			case 3:
+				switch (1 + rand() % 7) {
+				case 1:
+					musicfile = "resources/PDB1.ogg";
+					break;
+				case 2:
+					musicfile = "resources/PDB2.ogg";
+					break;
+				case 3:
+					musicfile = "resources/PDB3.ogg";
+					break;
+				case 4:
+					musicfile = "resources/PDB4.ogg";
+					break;
+				case 5:
+					musicfile = "resources/PDB5.ogg";
+					break;
+				case 6:
+					musicfile = "resources/PDB6.ogg";
+					break;
+				case 7:
+					musicfile = "resources/PDB7.ogg";
+					break;
+				}
+				break;
+			}
+			music.openFromFile(musicfile);
+			music.play();
+		}
+
+		sf::Event Event;
 		while (blocksWindow.pollEvent(Event))
 		{
 			switch (Event.type) {
@@ -140,6 +279,12 @@ void blocks() {
 						for (int j = 0; j < N; j++) {
 							field1[i][j] = 0;
 							field2[i][j] = 0;
+						}
+					}
+					for (int i = 0; i < O; i++) {
+						for (int j = 0; j < O; j++) {
+							hold1[i][j] = 0;
+							hold2[i][j] = 0;
 						}
 					}
 					for (int i = 0; i < 4; i++) {
@@ -154,45 +299,46 @@ void blocks() {
 					}
 					points1 = 0;
 					points2 = 0;
+					music.stop();
 					blocksWindow.close();
 					title();
 					return;
 				}
 
 				case sf::Event::KeyPressed:
-					if (Event.key.code == sf::Keyboard::Up)
+					if (Event.key.code == player1Rotate)
 						upKey = true;
-					else if (Event.key.code == sf::Keyboard::Left)
+					else if (Event.key.code == player1Left)
 						leftKey = true;
-					else if (Event.key.code == sf::Keyboard::Down)
+					else if (Event.key.code == player1Drop)
 						downKey = true;
-					else if (Event.key.code == sf::Keyboard::Right)
+					else if (Event.key.code == player1Right)
 						rightKey = true;
-					else if (Event.key.code == sf::Keyboard::W)
+					else if (Event.key.code == player2Rotate)
 						wKey = true;
-					else if (Event.key.code == sf::Keyboard::A)
+					else if (Event.key.code == player2Left)
 						aKey = true;
-					else if (Event.key.code == sf::Keyboard::S)
+					else if (Event.key.code == player2Drop)
 						sKey = true;
-					else if (Event.key.code == sf::Keyboard::D)
+					else if (Event.key.code == player2Right)
 						dKey = true;
 					break;
 				case sf::Event::KeyReleased:
-					if (Event.key.code == sf::Keyboard::Up)
+					if (Event.key.code == player1Rotate)
 						upKey = false;
-					else if (Event.key.code == sf::Keyboard::Left)
+					else if (Event.key.code == player1Left)
 						leftKey = false;
-					else if (Event.key.code == sf::Keyboard::Down)
+					else if (Event.key.code == player1Drop)
 						downKey = false;
-					else if (Event.key.code == sf::Keyboard::Right)
+					else if (Event.key.code == player1Right)
 						rightKey = false;
-					else if (Event.key.code == sf::Keyboard::W)
+					else if (Event.key.code == player2Rotate)
 						wKey = false;
-					else if (Event.key.code == sf::Keyboard::A)
+					else if (Event.key.code == player2Left)
 						aKey = false;
-					else if (Event.key.code == sf::Keyboard::S)
+					else if (Event.key.code == player2Drop)
 						sKey = false;
-					else if (Event.key.code == sf::Keyboard::D)
+					else if (Event.key.code == player2Right)
 						dKey = false;
 					break;
 				default:
@@ -226,8 +372,12 @@ void blocks() {
 			dKey = false;
 		}
 		// Speeds the game up if down is held
-		if (downKey) delay1 = 0.05;
-		if (sKey) delay2 = 0.05;
+		if (downKey && ((0.05 - intensity) > 0.04)) delay1 = (0.05 - intensity);
+		else if (downKey && 0.04 < (0.3 - intensity)) delay1 = 0.04;
+		else delay1 = (0.3 - intensity);
+		if (sKey && ((0.05 - intensity) > 0.04)) delay2 = (0.05 - intensity);
+		else if (sKey && 0.04 < (0.3 - intensity)) delay2 = 0.04;
+		else delay2 = (0.3 - intensity);
 
 		// Moves the blocks
 		for (int i = 0; i < 4; i++) {
@@ -272,13 +422,21 @@ void blocks() {
 			{
 				for (int i = 0; i < 4; i++) field1[b[i].y][b[i].x] = colorNum1;
 
-				colorNum1 = 1 + rand() % 7;
-				int n = rand() % 7;
 				for (int i = 0; i < 4; i++)
 				{
-					a[i].x = figures[n][i] % 2;
-					a[i].y = figures[n][i] / 2;
+					a[i].x = figures[n1][i] % 2 + 4;
+					a[i].y = figures[n1][i] / 2 - 1;
 				}
+
+				n1 = rand() % 7;
+				colorNum1 = colorNum1b;
+				colorNum1b = 1 + rand() % 7;
+				for (int i = 0; i < O; i++) {
+					for (int j = 0; j < O; j++) {
+						hold1[i][j] = 0;
+					}
+				}
+				for (int i = 0; i < 4; i++) hold1[figures[n1][i] / 2][figures[n1][i] % 2] = colorNum1b;
 			}
 			timer1 = 0;
 		}
@@ -290,13 +448,21 @@ void blocks() {
 			{
 				for (int i = 0; i < 4; i++) field2[d[i].y][d[i].x] = colorNum2;
 
-				colorNum2 = 1 + rand() % 7;
-				int n = rand() % 7;
 				for (int i = 0; i < 4; i++)
 				{
-					c[i].x = figures[n][i] % 2;
-					c[i].y = figures[n][i] / 2;
+					c[i].x = figures[n2][i] % 2 + 4;
+					c[i].y = figures[n2][i] / 2 - 1;
 				}
+
+				n2 = rand() % 7;
+				colorNum2 = colorNum2b;
+				colorNum2b = 1 + rand() % 7;
+				for (int i = 0; i < O; i++) {
+					for (int j = 0; j < O; j++) {
+						hold2[i][j] = 0;
+					}
+				}
+				for (int i = 0; i < 4; i++) hold2[figures[n2][i] / 2][figures[n2][i] % 2] = colorNum2b;
 			}
 
 			timer2 = 0;
@@ -350,20 +516,43 @@ void blocks() {
 				else {
 					winnerText.setString("Tie!");
 				}
+				music.stop();
+				music.openFromFile("resources/SHOP5.ogg");
+				music.play();
 				victory = true;
 			}
 		}
 
 		// Default values for movement/rotate/tickrate
-		dx1 = 0; rotate1 = 0; delay1 = 0.3;
-		dx2 = 0; rotate2 = 0; delay2 = 0.3;
+		dx1 = 0; rotate1 = 0;
+		dx2 = 0; rotate2 = 0;
 
 		// Draw all the sprites
 		blocksWindow.clear(Color::White);
 		blocksWindow.draw(background);
 
+		// Draws the blocks in the hold
+		for (int i = 0; i < O; i++) {
+			for (int j = 0; j < O; j++)
+			{
+				if (hold1[i][j] == 0) continue;
+				s.setTextureRect(IntRect(hold1[i][j] * 27, 0, 27, 27));
+				s.setPosition(j * 27, i * 27);
+				s.move(326, 31); //offset
+				blocksWindow.draw(s);
+			}
+			for (int j = 0; j < O; j++)
+			{
+				if (hold2[i][j] == 0) continue;
+				s.setTextureRect(IntRect(hold2[i][j] * 27, 0, 27, 27));
+				s.setPosition(j * 27, i * 27);
+				s.move(835, 31); //offset
+				blocksWindow.draw(s);
+			}
+		}
+
 		// Draws the blocks on the ground
-		for (int i = 0; i < M; i++)
+		for (int i = 0; i < M; i++) {
 			for (int j = 0; j < N; j++)
 			{
 				if (field1[i][j] == 0) continue;
@@ -372,7 +561,6 @@ void blocks() {
 				s.move(28, 31); //offset
 				blocksWindow.draw(s);
 			}
-		for (int i = 0; i < M; i++)
 			for (int j = 0; j < N; j++)
 			{
 				if (field2[i][j] == 0) continue;
@@ -381,6 +569,7 @@ void blocks() {
 				s.move(970, 31); //offset
 				blocksWindow.draw(s);
 			}
+		}
 
 		// Draws the blocks in the air
 		for (int i = 0; i < 4; i++)
@@ -395,6 +584,9 @@ void blocks() {
 			blocksWindow.draw(s);
 		}
 
+		clocktimer.setString(std::to_string(countdown));
+		blocksWindow.draw(clocktimer);
+		blocksWindow.draw(clocktext);
 		blocksWindow.draw(text);
 		blocksWindow.draw(text2);
 		blocksWindow.draw(score1);
@@ -403,7 +595,7 @@ void blocks() {
 	}
 	while (blocksWindow.isOpen())
 	{
-		Event Event;
+		sf::Event Event;
 		while (blocksWindow.pollEvent(Event))
 		{
 			// Resets all variables on game close
@@ -436,6 +628,26 @@ void blocks() {
 		// Draw all the sprites
 		blocksWindow.clear(Color::White);
 		blocksWindow.draw(background);
+
+		// Draws the blocks in the hold
+		for (int i = 0; i < O; i++) {
+			for (int j = 0; j < O; j++)
+			{
+				if (hold1[i][j] == 0) continue;
+				s.setTextureRect(IntRect(hold1[i][j] * 27, 0, 27, 27));
+				s.setPosition(j * 27, i * 27);
+				s.move(328, 31); //offset
+				blocksWindow.draw(s);
+			}
+			for (int j = 0; j < O; j++)
+			{
+				if (hold2[i][j] == 0) continue;
+				s.setTextureRect(IntRect(hold2[i][j] * 27, 0, 27, 27));
+				s.setPosition(j * 27, i * 27);
+				s.move(835, 31); //offset
+				blocksWindow.draw(s);
+			}
+		}
 
 		// Draws the blocks on the ground
 		for (int i = 0; i < M; i++)
@@ -471,6 +683,8 @@ void blocks() {
 		}
 
 		blocksWindow.draw(winnerText);
+		blocksWindow.draw(clocktimer);
+		blocksWindow.draw(clocktext);
 		blocksWindow.draw(text);
 		blocksWindow.draw(text2);
 		blocksWindow.draw(score1);
